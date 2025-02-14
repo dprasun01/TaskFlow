@@ -1,0 +1,21 @@
+1. Study the folder structure of the project properly.
+
+2. Study the contents and comments in backend/backend.dockerfile in detail.
+
+3. NOTES ON backend.dockerfile:
+  Notice that we copy the requirements.txt first and then the rest of the contents into /app
+  - If we copy everything first and then install the dependencies such as:
+    COPY . .   # Copies ALL files, including app code
+    RUN pip install --no-cache-dir -r requirements.txt
+
+  If we make a small code change in our FastAPI app, Docker rebuilds everything from scratch, including reinstalling dependencies.
+  A better approach would be to:
+  - Copy only requirements.txt first.
+  - Install dependencies.
+  - Then copy the rest of the files.
+
+  To build the image, we use the command:
+  - "docker build -t taskflow-backend -f backend.dockerfile ."
+  - the -t flag	names (tags) the built image
+  - the -f flag specifies a custom Dockerfile
+  - It searches for the dockerfile within '.' path
