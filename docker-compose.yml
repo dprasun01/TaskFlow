@@ -58,6 +58,7 @@ services:                                                   # defines all the se
     volumes:
       - redis_data:/data
   
+  # COMMENTED BECAUSE frontend.dockerfile is empty as of right now
   # frontend:
   #   build:
   #     context: ./frontend

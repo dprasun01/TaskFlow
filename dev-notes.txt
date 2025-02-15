@@ -24,7 +24,7 @@ ________________________________________________________________________________
   - It searches for the dockerfile within '.' path
 __________________________________________________________________________________________________________
 
-4. NOTES ON docker-compose.yml (IMPORTANT):
+4. NOTES ON docker-compose.yml [IMPORTANT]:
 
   Notice that version 3.8 specifies that we are using Docker Compose file format version 3.8
   
@@ -62,3 +62,5 @@ ________________________________________________________________________________
 
   Lastly, notice how the global volumes fields at the botton defines all the local storage volumes postgres_data, mongodb_data, and redis_data
 __________________________________________________________________________________________________________
+
+5. NOTES ON the FastAPI backend [IMPORTANT]
