@@ -23,7 +23,7 @@ services:                                                   # defines all the se
       - SECRET_KEY=my_jwt_secret
     
   postgresql:                                               # name of the service -> postgresql
-    image: postgres:latest-alpine                           # since we don't need to build, we use a docker image
+    image: postgres:latest                                  # since we don't need to build, we use a docker image
     environment:
       - POSTGRES_USER=taskflow_user
       - POSTGRES_PASSWORD=taskflow_password
@@ -58,14 +58,14 @@ services:                                                   # defines all the se
     volumes:
       - redis_data:/data
   
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: frontend.dockerfile
-    ports:
-      - "3000:3000"
-    depends_on:
-      - backend
+  # frontend:
+  #   build:
+  #     context: ./frontend
+  #     dockerfile: frontend.dockerfile
+  #   ports:
+  #     - "3000:3000"
+  #   depends_on:
+  #     - backend
 
 volumes:                                                    # for persistent data sorage for restarts
   postgres_data:

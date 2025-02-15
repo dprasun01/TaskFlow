@@ -8,8 +8,9 @@ WORKDIR /app
 # At this point, we're already inside app/ in the container
 COPY ./requirements.txt .
 
-# Step-4: Install all the dependencies inside requirements.txt
+# Step-4: Install all the dependencies inside requirements.txt and fastapi uvicorn
 RUN pip3 install --no-cache-dir -r requirements.txt
+RUN pip install fastapi uvicorn
 
 # Step-5: Copy all the backend files into the working directory /app inside the container
 COPY . .

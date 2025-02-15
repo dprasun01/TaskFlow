@@ -45,7 +45,7 @@ ________________________________________________________________________________
 
     - depends_on lists the services our backend is dependent upon and starts those services prior to the backend
     - condition ensures that the services are either healthy, or started before starting the backend service
-    - COME BACK TO IT LATER!
+    - COME BACK TO THIS LATER!
 
     - study the environment variables for each of the service for info on the instance running
 
