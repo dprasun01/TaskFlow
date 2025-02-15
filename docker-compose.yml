@@ -1,0 +1,73 @@
+# Step-1: Define the docker-compose version
+version: '3.8'
+
+# Step-2: Define the backend service
+services:                                                   # defines all the services we want to run
+  backend:                                                  # name of the service -> our FastAPI backend
+    build:                                                  # specifies how to build it
+      context: ./backend                                    # location of the directory that docker should look for
+      dockerfile: backend.dockerfile                        # specifying the dockerfile
+    ports:
+      - "8000:8000"                                         # 8000 for us: 8000 for the container
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      - DATABASE_URL=postgresql://taskflow_user:taskflow_password@postgres:5432/taskflow_db
+      - MONGODB_URI=mongodb://mongodb:27017/taskflow
+      - REDIS_URL=redis://redis:6379
+      - SECRET_KEY=my_jwt_secret
+    
+  postgresql:                                               # name of the service -> postgresql
+    image: postgres:latest-alpine                           # since we don't need to build, we use a docker image
+    environment:
+      - POSTGRES_USER=taskflow_user
+      - POSTGRES_PASSWORD=taskflow_password
+      - POSTGRES_DB=taskflow_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U taskflow_user -d taskflow_db"]   # checks if PostgreSQL is ready
+      interval: 5s                                         # runs the check every 5 seconds
+      retries: 5                                           # if it fails, retry up to 5 times
+      start_period: 10s                                    # wait 10s before starting health checks
+
+
+  mongodb:
+    image: mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.runCommand('ping').ok"]
+      interval: 5s
+      retries: 5
+      start_period: 10s
+  
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+  
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: frontend.dockerfile
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+volumes:                                                    # for persistent data sorage for restarts
+  postgres_data:
+  mongodb_data:
+  redis_data:

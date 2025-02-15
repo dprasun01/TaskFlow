@@ -1,8 +1,11 @@
 1. Study the folder structure of the project properly.
+__________________________________________________________________________________________________________
 
 2. Study the contents and comments in backend/backend.dockerfile in detail.
+__________________________________________________________________________________________________________
 
 3. NOTES ON backend.dockerfile:
+
   Notice that we copy the requirements.txt first and then the rest of the contents into /app
   - If we copy everything first and then install the dependencies such as:
     COPY . .   # Copies ALL files, including app code
@@ -19,3 +22,43 @@
   - the -t flag	names (tags) the built image
   - the -f flag specifies a custom Dockerfile
   - It searches for the dockerfile within '.' path
+__________________________________________________________________________________________________________
+
+4. NOTES ON docker-compose.yml (IMPORTANT):
+
+  Notice that version 3.8 specifies that we are using Docker Compose file format version 3.8
+  
+  We define all the services we need: backend, postgresql, mongodb, redis, and frontend
+  - Notice that services like backend and frontend, we need to build them because we have our custom dockerfile for each of them that (for backend):
+    - copies all the necessary items into the container image
+    - installs all the necessary dependencies prior
+    - runs the FastAPI backend api
+  - In contrast, we use simple images for postgresql, mongodb, and redis provided by docker
+
+  Notice all the fields within a service
+    - build uses context for the location of the dockerfile and the dockerfile itself
+
+    - ports: "8000:8000" mean that for us (local machine), we can access the backend at: http://localhost:8000,
+      where our computer is the localhost. But, for the container, the same backend service is running at: http://localhost:8000 where the container is the localhost
+      Similarly, to take an example, we can access the postgresql instance at http://localhost:5432
+      and the container has the same postgresql instance running at http://localhost:5432
+
+    - depends_on lists the services our backend is dependent upon and starts those services prior to the backend
+    - condition ensures that the services are either healthy, or started before starting the backend service
+    - these don't guarantee that backend
+
+    - study the environment variables for each of the service for info on the instance running
+
+    - healthcheck ensures postgresql, and mongodb are working and responsive (every 5 seconds) starting from 
+      10 seconds after launch, and retries upto 5 times in case of failure before starting backend 
+    
+    - [IMPORTANT] study how the volumes' references have been set up inside postgresql, mongodb, and redis 
+      services for persistent storage of data. 
+      The left side of the colon denotes that on our local machine, Docker will create a named volume and manage the data in it. On the other hand, the right side of the colon denotes the path where the data resides inside the container itself.
+      For example: in 'postgres_data:/var/lib/postgresql/data', in our local computer, the data will be stored in a volume called postgres_data somewhere; we don't need to worry about it since docker manages it. But inside the container itself, the data can be found at "/var/lib/postgresql/data".
+    - When a launched docker container is stopped with docker-compose down or is interrupted, the data in
+      these named columes persists because the named volumes are still in our local machine and data can be restored the next time the container is composed up.
+    - Volumes can only be deleted explicitly with docker volume rm <volume_name>, not otherwise
+
+  Lastly, notice how the global volumes fields at the botton defines all the local storage volumes postgres_data, mongodb_data, and redis_data
+__________________________________________________________________________________________________________
