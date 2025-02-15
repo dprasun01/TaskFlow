@@ -1,7 +1,7 @@
 # Step-1: Define the docker-compose version
 version: '3.8'
 
-# Step-2: Define the backend service
+# Step-2: Define all the services
 services:                                                   # defines all the services we want to run
   backend:                                                  # name of the service -> our FastAPI backend
     build:                                                  # specifies how to build it
@@ -23,7 +23,7 @@ services:                                                   # defines all the se
       - SECRET_KEY=my_jwt_secret
     
   postgresql:                                               # name of the service -> postgresql
-    image: postgres:latest                                  # since we don't need to build, we use a docker image
+    image: postgres:16                                      # since we don't need to build, we use a docker image
     environment:
       - POSTGRES_USER=taskflow_user
       - POSTGRES_PASSWORD=taskflow_password

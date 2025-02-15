@@ -64,3 +64,75 @@ ________________________________________________________________________________
 __________________________________________________________________________________________________________
 
 5. NOTES ON the FastAPI backend [IMPORTANT]
+  In backend.dockerfile, we run 
+    CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+  This means the container looks for an app instance of the FastAPI in main.py within the app directory of the container, i.e. app.main (left of the colon) -> /app/main.py and app (right of the colon) ->
+  app = FastAPI() instance within main.py
+
+  Some Key Terms and Definitions for Python Backend Web Servers [IMPORTANT]:
+
+    - Traditional Web Servers:
+      - These serve static files, media, html, etc. (Example: Nginx, Apache, Caddy, LiteSpeed, etc.)
+      - They do not run Python applications directly, but can forward requests to backend (WSGI/ASGI) servers
+        and return the responses from those backend servers to the client
+      - They also act as reverse proxy, i.e.
+        - They provide load balancing by distributing requests across multiple WSGI/ASGI servers
+        - They hide backend servers from direct public access, adding a layer of security
+        - They handle static files, compression, and caching better than an application server
+      - NGINX, APACHE, etc. are software packages that enable a computer to act as a web server, i.e., listen 
+        for all incoming requests on port 80 (HTTP) or 443 (HTTPS) from any IP address and serve static files or forward the request to a backend application server and send responses back to the clients
+    
+    - Application/Backend Servers:
+      - These are responsible for running dynamic web applications with dynamic API endpoints
+      - They are of two types (in terms of Python application servers)
+
+        - WSGI server: Web Server Gateway Interface (WSGI) is an older standard for synchronous Python 
+          web applications, that defines how a web server (like NGINX/Apche) communicates with a Python web application.
+          Key Points:
+          - Synchronous: It handles one request at a time
+          - Middleware Support: It allows the use of middleware like authentication, logging, etc. to 
+            modify requests and responses
+          - It is the de facto standard for Python web app frameworks like Django and Flask in synchronous mode
+          - Examples: Gunicorn and uWSGI -> when we install and run Gunicorn or uWSGI, it turns our computer into
+            a WSGI server, allowing us to serve Flask or Django apps
+          - Some WSGI servers (like Gunicorn) support multiple worker processes, which allows handling multiple 
+            requests concurrently, but each worker is still synchronous
+
+          HOW A WSGI SERVER WORKS (Example):
+            Let's say a user wants to add an item (a task) to a certain web application, and there is a Flask app that provides a route and a POST method for it -> "www.example-app.com/api/add-task/<task-info>". Assume that this method communicates with a database, adds the task into it, and responds with status 201 and a simple JSON response {"message":"task added"}. Then the steps involved are:
+            - User/Client: Sends a POST request to www.example-app.com/api/add-task/<task-info>
+            - Web Server (NGINX): Receives the HTTP request, acts as a reverse proxy, forwards it 
+              to the appropriate backend application server based on the "/api/add-task/<task-info>" portion
+            - Gunicorn: Is running and listening on port 8000 (say) and receives the request on the WSGI 
+              server it's running on. It then matches the URL with the appropriate route defined in the Flask app
+            - Flask App: Processes the request inside that method, extracts the task-info, interacts with 
+              the database server to add the task and returns the response JSON to Gunicorn
+            - Gunicorn: Sends the response back to the NGINX web server
+            - Web Server (NGINX): Receives the response from Gunicorn and forwards it to the client
+            - User/Client: Receives the response
+
+        - ASGI server: ASGI (Asynchronous Server Gateway Interface) is a newer standard for asynchronous Python 
+          web applications, introduced to support modern use cases like WebSockets and long-lived connections.
+          Key Points:
+          - Asynchronous: It can handle many requests concurrently using async I/O, ideal for WebSockets 
+            and streaming APIs. Thus, ASGI can handle real-time communication
+          - Designed for modern frameworks like FastAPI, Django Channels, and Starlette
+          - Examples: Uvicorn and Daphne
+          - ASGI servers like Uvicorn leverage async programming with event loops (like those in 
+            Python's asyncio), making them more scalable for concurrent tasks.
+
+          HOW An ASGI SERVER WORKS (Example):
+          Let's say a user registers to a web application by providing their email and username. With that they create a POST request to "www.example-app.com/register/". Within the body of the POST request, say there is:
+            {
+              "username": "johndoe",
+              "email":"johndoe@gmail.com"
+            }
+          As we saw in WSGI server, the usual behavior is for the NGINX to act as a reverse proxy and forward the request and response to and from between the client and uvicorn, which then matches the url to the specific method defined in the running FastAPI instance.
+          - FastAPI: Receives the incoming request, validates the data using the User model (say), and 
+            starts processing. However, instead of waiting for the confirmation email to be sent (which being a network I/O task can take a long time), the task gets added to the background and is run asynchronously. In the meantime, other requests or tasks are being handled by the FastAPI backend, effectively implementing non-blocking in the server. However, a response of status 201, and say a JSON response of {"message":"User registered!"} is sent immediately, again without waiting for the email to be sent. The email gets sent eventually. 
+            Thus, "www.example-app.com/register/" endpoint receives the user data, saves it and responds immediately, while the network I/O task of sending a confirmation email is executed asynchronously in the background.
+          
+
+    - uvicorn: an ASGI web server implementation for Python/FastAPI framework. It handles network communication
+      by receiving requests from client applications such as users' browsers and sending responses to them
+    
