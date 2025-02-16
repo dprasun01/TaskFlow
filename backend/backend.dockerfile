@@ -22,3 +22,4 @@ EXPOSE 8000
 
 # Step 7: Define the command to start FastAPI
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+# --reload ensures that each time there's a change in the app, the backend restarts/reloads

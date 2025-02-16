@@ -1,4 +1,4 @@
-1. Study the folder structure of the project properly.
+1. Study the file structure of the project properly.
 
 backend/
 │── app/
