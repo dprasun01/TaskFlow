@@ -1,4 +1,22 @@
 1. Study the folder structure of the project properly.
+
+backend/
+│── app/
+│   ├── main.py              # Entry point of FastAPI app
+│   ├── database.py          # Handles DB connections
+│   ├── models.py            # SQLAlchemy models (PostgreSQL)
+│   ├── crud.py              # Database operations (CRUD)
+│   ├── routes/
+│   │   ├── __init__.py      # Makes it a package
+│   │   ├── user.py          # Example: User-related routes
+│   │   ├── task.py          # Example: Task-related routes
+│   ├── schemas.py           # Pydantic models for request validation
+│   ├── config.py            # Settings & environment variables
+│   ├── redis.py             # Redis connection setup
+│── requirements.txt
+│── backend.dockerfile
+│── ...
+
 __________________________________________________________________________________________________________
 
 2. Study the contents and comments in backend/backend.dockerfile in detail.
@@ -69,7 +87,7 @@ ________________________________________________________________________________
   This means the container looks for an app instance of the FastAPI in main.py within the app directory of the container, i.e. app.main (left of the colon) -> /app/main.py and app (right of the colon) ->
   app = FastAPI() instance within main.py
 
-  Some Key Terms and Definitions for Python Backend Web Servers [IMPORTANT]:
+  Some Key Terms and Definitions for Python Backend Web Servers [IMPORTANT - FULL READ]:
 
     - Traditional Web Servers:
       - These serve static files, media, html, etc. (Example: Nginx, Apache, Caddy, LiteSpeed, etc.)
@@ -84,12 +102,14 @@ ________________________________________________________________________________
     
     - Application/Backend Servers:
       - These are responsible for running dynamic web applications with dynamic API endpoints
-      - They are of two types (in terms of Python application servers)
+      - They are of two types (in terms of Python application servers): WSGI and ASGI
+      - Gateway Interface refers to the layer between the application server and the Python web application
 
         - WSGI server: Web Server Gateway Interface (WSGI) is an older standard for synchronous Python 
           web applications, that defines how a web server (like NGINX/Apche) communicates with a Python web application.
           Key Points:
-          - Synchronous: It handles one request at a time
+          - Synchronous: It handles one request at a time, so each worker process gets blocked until it 
+            handles its currently-being-processed request
           - Middleware Support: It allows the use of middleware like authentication, logging, etc. to 
             modify requests and responses
           - It is the de facto standard for Python web app frameworks like Django and Flask in synchronous mode
@@ -97,6 +117,7 @@ ________________________________________________________________________________
             a WSGI server, allowing us to serve Flask or Django apps
           - Some WSGI servers (like Gunicorn) support multiple worker processes, which allows handling multiple 
             requests concurrently, but each worker is still synchronous
+          - Number of workers can be 2 x (number of CPU cores) + 1 maximum
 
           HOW A WSGI SERVER WORKS (Example):
             Let's say a user wants to add an item (a task) to a certain web application, and there is a Flask app that provides a route and a POST method for it -> "www.example-app.com/api/add-task/<task-info>". Assume that this method communicates with a database, adds the task into it, and responds with status 201 and a simple JSON response {"message":"task added"}. Then the steps involved are:
@@ -131,8 +152,21 @@ ________________________________________________________________________________
           - FastAPI: Receives the incoming request, validates the data using the User model (say), and 
             starts processing. However, instead of waiting for the confirmation email to be sent (which being a network I/O task can take a long time), the task gets added to the background and is run asynchronously. In the meantime, other requests or tasks are being handled by the FastAPI backend, effectively implementing non-blocking in the server. However, a response of status 201, and say a JSON response of {"message":"User registered!"} is sent immediately, again without waiting for the email to be sent. The email gets sent eventually. 
             Thus, "www.example-app.com/register/" endpoint receives the user data, saves it and responds immediately, while the network I/O task of sending a confirmation email is executed asynchronously in the background.
+      
+      - It looks like ASGI is much faster than WSGI. While, it is sort of true but context matters.
+      - If we look at the number of requests handled per unit of time (say per second or per minute), ASGI
+        can definitely handle lot more requests than WSGI. However, if we look at individual request handling time there may not be much of a difference. Also a lot depends on how the programmer writes the asynchronous code.
+      - In the worst case scenario the asynchronous code may well take more time to handle a request than
+        the synchronous code.
+      - ASGI may also be able to handle I/O operations better than WSGI but when we look at CPU bound 
+        operations, the difference may not be very high. 
+      - Additionally, we may be able to spot the difference only during very high load. The advantage 
+        of concurrency may not be visible at lesser load, taking all these into consideration.
+      
+      - ASGI is indeed the spiritual successor to WSGI as it has got the added benefit 
+        of concurrency
           
-
-    - uvicorn: an ASGI web server implementation for Python/FastAPI framework. It handles network communication
-      by receiving requests from client applications such as users' browsers and sending responses to them
+  READ THIS AFTER THE ABOVE SECTION
+  - uvicorn: an ASGI web server implementation for Python/FastAPI framework
+  - 
     
