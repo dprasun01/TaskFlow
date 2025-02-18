@@ -16,18 +16,13 @@ services:                                                   # defines all the se
         condition: service_healthy
       redis:
         condition: service_started
-    environment:
-      - DATABASE_URL=postgresql://taskflow_user:taskflow_password@postgres:5432/taskflow_db
-      - MONGODB_URI=mongodb://mongodb:27017/taskflow
-      - REDIS_URL=redis://redis:6379
-      - SECRET_KEY=my_jwt_secret
+    env_file:
+      - .env
     
   postgresql:                                               # name of the service -> postgresql
     image: postgres:16                                      # since we don't need to build, we use a docker image
-    environment:
-      - POSTGRES_USER=taskflow_user
-      - POSTGRES_PASSWORD=taskflow_password
-      - POSTGRES_DB=taskflow_db
+    env_file:
+      - .env.db
     ports:
       - "5432:5432"
     volumes:

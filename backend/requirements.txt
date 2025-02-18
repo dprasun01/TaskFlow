@@ -1,0 +1,5 @@
+sqlalchemy
+asyncpg
+pydantic
+motor
+pydantic-settings
