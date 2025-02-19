@@ -179,14 +179,18 @@ ________________________________________________________________________________
   - uvicorn: an ASGI web server implementation for Python/FastAPI framework
 __________________________________________________________________________________________________________
   
-6. <WRITE MORE NOTES ON THESE TOPICS AS YOU GO>
+6. SOME BASIC TERMS BEFORE MOVING ON...
 SQLAlchemy - ORM for PostgreSQL
-Pydantic - ensures data validation before sending it to the database and defines the structure of 
-            incoming and outgoing data
-Motor - async MongoDB driver
+  - Object Relational Mapper (ORM) is a tool that represents tables in databases through OOP classes and we
+    can use OOP for performing CRUD operations instead of having to write actual SQL queries
+Pydantic 
+  - ensures data validation before sending it to the database and defines the structure of 
+  incoming and outgoing data
+Motor 
+  - async MongoDB driver
 __________________________________________________________________________________________________________
 
-7. NOTES ON database.py
+7. NOTES ON database.py (SQLALCHEMY's ROLE)
   from sqlalchemy import create_engine
   - This function creates a new engine, which is the starting point of any SQLAlchemy app
   - It establishes connectivity to our database
@@ -240,3 +244,64 @@ ________________________________________________________________________________
     - yield keyword: Acts like a context manager; provides the session to our route function and then, 
       once the function completes, it ensures the session is closed.
       IT YIELDS THE DB TO THE CALLING FUNCTION
+__________________________________________________________________________________________________________
+
+8. NOTES ON config.py and schemas.py (PYDANTIC's & SQLALCHEMY's ROLE)
+  In this project, Pydantic's role is two-fold, and they show up at different stages of our app's Lifecycle:
+
+  Let's take an example to understand this. Let's say a user is creating a profile (registering) in TaskFlow app. That would look something like the frontend asking to fill up a form with the required fields (username, password, and email) and sending that data in a POST request as a JSON body. Then FastAPI would get the JSON data, interact with the database, add the user to the database and respond to the frontend with 201 status and a JSON such as:
+  { 
+    'id': <userID>,
+    'username' : <username>,
+    'email' : <email>,
+    'created_at' : <registration_datetime>
+  }
+  Now, let's look at how Pydantic and SQLAlchemy are involved in this application in terms of this one task.
+
+  I. config.py -> DURING APPLICATION STARTUP
+    - Here, when we instantiate the Settings class, inheriting from Pydantic's BaseSettings, 
+      Pydantic automatically loads and validates the environment variables from our .env file, which contains out PostgreSQL database's URL.
+    - This happens right when our application starts up. If any required variable is missing or is of the 
+      wrong type, Pydantic will raise an error immediately, preventing our application from running with an invalid configuration.
+    - It looks like overkill for TaskFlow, but large-scale apps, with lots of environ,ment variables would 
+      benefit from this.
+    
+    - So, Pydantic here, basically ensures that DATABASE_URL, MONGODB_URI, REDIS_URL, and SECRET_KEY are 
+      all present and of the string type.
+    - The Config class let's us define specific configurations, for example, we have defined an env_file for 
+      the Settings Pydantic model that links the .env file path
+  
+  II. models.py and schemas.py -> DURING REQUEST HANDLING (USER REGISTRATION)
+
+    - When the frontend sends the user information to register, FastAPI uses the Pydantic model defined in 
+      schemas.py to ensure that the JSON data adheres to the User model defined in models.py
+    - It will check if all the fields are present or not and if any field value is of the wrong type and 
+      generate an error for FastAPI. However, simple conversions, such as if 25 was needed and the data has '25', Pydantic can perform the conversions for the backend
+    - The validations are done based on the schemas defined in schemas.py
+      - UserCreate is the schema model in this case
+      - It inherits from UserBase, so it checks if string username and email have been provided
+      - And since password is defined within UserCreate itself, it checks for a string password as well
+
+    - One this validation (and conversion) is complete, the data is deserialized into the ORM based on 
+      UserCreate schema, --> DESERIALIZATION
+      and passed to the relevant CRUD function
+
+    - Now, SQLAlchemy maps it into an ORM object, a user instance object of the User model defined in models.py
+    - Any additional auto-generated info like id, and created_date in this case is added by SQLAlchemy itself
+    - This is the INTERNAL DATABASE REPRESENTATION of the data, an ORM object with class attributes as 
+      the respective fields for the database's columns
+    - It then handles the persistence by inserting the new record into the PostgreSQL database. SQLAlchemy 
+      manages the connection, builds the appropriate SQL queries, and commits the changes
+
+    - Finally, once SQLAlchemy has committed the transaction, it returns the ORM object of the new user data
+      contained in the database to the API (we have to make our code return whatever we want from SQLAlchemy)
+    - Now, using the UserResponse schema model defined within schemas.py, FastAPI validates and serializes the
+      response sent by SQLAlchemy
+      - The ORM object is passed into UserResponse model
+      - Thanks to the orm_mode=True setting in the Pydantic model, it automatically reads the fields from 
+        the SQLAlchemy object and converts it into a JSON-friendly format --> SERIALIZATION
+      - DECOUPLING [IMPORTANT]: Even though the response has all the user information, with internal fields 
+        like password, the UserResponse schema model exposes only username, email (from UserBase) and id, and created_date
+    
+    - So, with this interaction and co-operation between Pydantic and SQLAlchemy, the internal 
+      database representation has all the relevant fields like id, password, created_date and others, but not all of them are exposed over the API through decoupling.
