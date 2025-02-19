@@ -17,12 +17,12 @@ services:                                                   # defines all the se
       redis:
         condition: service_started
     env_file:
-      - .env
+      - .env                                                # Load backend environment variables from .env
     
   postgresql:                                               # name of the service -> postgresql
     image: postgres:16                                      # since we don't need to build, we use a docker image
     env_file:
-      - .env.db
+      - .env.db                                             # Load postgresql environment variables from .env.db
     ports:
       - "5432:5432"
     volumes:

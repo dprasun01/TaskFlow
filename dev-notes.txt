@@ -1,22 +1,31 @@
 1. Study the file structure of the project properly.
 
-backend/
-│── app/
-│   ├── main.py              # Entry point of FastAPI app
-│   ├── database.py          # Handles DB connections
-│   ├── models.py            # SQLAlchemy models (PostgreSQL)
-│   ├── crud.py              # Database operations (CRUD)
-│   ├── routes/
-│   │   ├── __init__.py      # Makes it a package
-│   │   ├── user.py          # Example: User-related routes
-│   │   ├── task.py          # Example: Task-related routes
-│   ├── schemas.py           # Pydantic models for request validation
-│   ├── config.py            # Settings & environment variables
-│   ├── redis.py             # Redis connection setup
-│── requirements.txt
-│── backend.dockerfile
-│── ...
-
+TaskFlow
+| ── backend/
+    │── app/
+    │   ├── main.py              # Entry point of FastAPI app
+    │   ├── database.py          # Handles DB connections
+    │   ├── models.py            # SQLAlchemy models (PostgreSQL)
+    │   ├── crud.py              # Database operations (CRUD)
+    │   ├── routes/
+    │   │   ├── __init__.py      # Makes it a package
+    │   │   ├── user.py          # Example: User-related routes
+    │   │   ├── task.py          # Example: Task-related routes
+    │   ├── schemas.py           # Pydantic models for request validation
+    │   ├── config.py            # Settings & environment variables
+    │   ├── redis.py             # Redis connection setup
+    │── requirements.txt
+    │── backend.dockerfile
+    │── ...
+| ── frontend/
+    │── src/
+    │── backend.dockerfile
+    │── ...
+| ── .env
+| ── .env.db
+| ── .gitignore
+| ── docker-compose.yml
+| ── README.md
 __________________________________________________________________________________________________________
 
 2. Study the contents and comments in backend/backend.dockerfile in detail.
@@ -168,5 +177,66 @@ ________________________________________________________________________________
           
   READ THIS AFTER THE ABOVE SECTION
   - uvicorn: an ASGI web server implementation for Python/FastAPI framework
-  - 
+__________________________________________________________________________________________________________
+  
+6. <WRITE MORE NOTES ON THESE TOPICS AS YOU GO>
+SQLAlchemy - ORM for PostgreSQL
+Pydantic - ensures data validation before sending it to the database and defines the structure of 
+            incoming and outgoing data
+Motor - async MongoDB driver
+__________________________________________________________________________________________________________
+
+7. NOTES ON database.py
+  from sqlalchemy import create_engine
+  - This function creates a new engine, which is the starting point of any SQLAlchemy app
+  - It establishes connectivity to our database
+
+  from sqlalchemy.orm import sessionmaker [IMPORTANT]
+  - Session Establishment and Purpose:
+    - Establishes all conversations with the database
+    - Acts as a “holding zone” for all objects loaded or associated with it during its lifespan
+    - Provides the interface for executing SELECT and other queries that return or modify ORM-mapped objects.
     
+  - Identity Map:
+    - Maintains ORM objects within the Session in a structure called the identity map
+    - Ensures uniqueness by keeping only one object per particular primary key
+
+  - Transaction Lifecycle:
+    - Begins in a mostly stateless form
+    - Once queries are issued or objects are persisted, it requests a connection from an associated Engine.
+    - Establishes a transaction on that connection which remains in effect until the Session is instructed 
+      to commit or roll back
+
+  - Change Tracking and the Unit of Work Pattern:
+    - ORM objects are instrumented to generate change events whenever an attribute or collection is modified.
+    - Before querying the database or committing a transaction, the Session flushes all pending changes (this 
+      is the unit of work pattern)
+
+  - ORM Object Behavior and Synchronization:
+    - ORM-mapped objects are considered proxy objects to database rows, local to the Session’s transaction.
+    - Various events trigger these objects to re-access the database to stay synchronized with the actual 
+      database state
+
+  - Detaching Objects:
+    - It is possible to “detach” objects from a Session and continue using them, though this comes with caveats.
+    - Typically, detached objects should be re-associated with another Session to resume their normal role 
+      of representing database state
+  
+  READ THE FULL EXCERPT ABOVE BEFORE MOVING ON
+
+  In database.py, in SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine), we see the 
+  function parameters autocommit and autoflush
+    - Commit (as in any database) finalizes the transaction to the database
+    - Rollback (its opposite) negates/cancels any changes made during the transaction
+    - Flushing means that synchronizing our session's temporary in-memory changes (inserts, updates, 
+      deletes, etc.) that happen during transaction before finalizing, with the database by sending the appropriate SQL statements
+    - autoflush=False makes it so that any and all changes is kept in sessionmaker's "hoarding zone" and 
+      requiring explicit flush or commit from the user to synchronize and finalize the transactional changes respectively.
+
+  get_db function
+    - A dependency function that provides a new database session for each request.
+    - In FastAPI route functions, it's included as a dependency (using Depends(get_db)), ensuring that 
+      every request gets a fresh session.
+    - yield keyword: Acts like a context manager; provides the session to our route function and then, 
+      once the function completes, it ensures the session is closed.
+      IT YIELDS THE DB TO THE CALLING FUNCTION

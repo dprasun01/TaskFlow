@@ -20,6 +20,6 @@ COPY . .
 # Remember that this is the port for the container. The container is running FastAPI backend in its port 8000.
 EXPOSE 8000
 
-# Step 7: Define the command to start FastAPI
+# Step 7: Define the command to start FastAPI: listen for all incoming requests at port 8000
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
 # --reload ensures that each time there's a change in the app, the backend restarts/reloads
