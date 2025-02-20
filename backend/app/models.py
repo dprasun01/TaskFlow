@@ -11,7 +11,7 @@ Base = declarative_base()   # -> a class created by the declarative_base functio
 class User(Base):
   __tablename__ = "users"       # name of the table
 
-  id = Column(Integer, unique=True, primary_key=True, index=True, nullable=False)               # self-explanatory
+  id = Column(Integer, unique=True, primary_key=True, index=True)               # self-explanatory
   username = Column(String, unique=True, index=True, nullable=False)
   email = Column(String, unique=True, index=True, nullable=False)
   hashed_password = Column(String, nullable=False)
