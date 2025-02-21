@@ -4,6 +4,6 @@ from fastapi import FastAPI
 
 app = FastAPI()
 
-@app.get("/") # Home page
+@app.get("/") # Root URL
 def read_root():
   return {"message": "Taskflow backend is running"}
