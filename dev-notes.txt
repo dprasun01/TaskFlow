@@ -326,11 +326,13 @@ ________________________________________________________________________________
     - So, the syntax db: Session is a type annotation that tells us that the parameter db should be an instance 
       of the Session type
   - Make sure to study all the crud methods for users and for tasks in crud.py
+__________________________________________________________________________________________________________
 
 10. NOTES ON routes/user.py and routes/task.py
   Read through all the methods in both the files.
   - See how the router is set up for users and tasks with different API endpoints
   - Observe how the dependency injections have been created
+__________________________________________________________________________________________________________
 
 11. [IMPORTANT] NOTES ON dependencies.py:
 
@@ -387,3 +389,28 @@ ________________________________________________________________________________
       - If and when a token expires, the server rejects it and logs the user out
       - This expiration mechanism is one reason why some sites log users out after inactivity; it minimizes 
         the risk if someone gains access to an unused token.
+__________________________________________________________________________________________________________
+
+12. NOTES ON routes/auth.py:
+  - Study properly the method login_for_access_token, as it solidifies authentication and token issuance concepts
+  
+  - When a user logs in at '/token', the endpoint (with the method 'login_for_access_token' in auth.py) 
+    validates the credentials using authenticate_user function and creates a JWT access_token via create_access_token, such as:
+    {"access_token": "<JWT token>", "token_type": "bearer"}
+    Also,
+    access_token = crud.create_access_token(
+    data = {"sub" : user.username}, expires_delta = access_token_expires
+    )
+    denotes how the username can be accessed by get_current_username in payload.get("sub")
+  - This response is usually sent back to the client (browser) that saves it; often in local storage, session,
+    or cookies
+  
+  - [IMPORTANT] AUTOMATIC DEPENDENCY INJECTION in FastAPI:
+    - Read the content above this description first
+    - OAuth2PasswordBearer Dependency: In our get_current_user function, we have:
+      get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> models.User:
+      Here, the token parameter is automatically populated by the result of oauth2_scheme. Thus, this dependency extracts the token from the incoming request's Authorization header
+    - When we use Depends(get_current_user) in our task endpoints, FastAPI automatically calls 
+      get_current_user and resolves its own dependencies (token -> oauth2_scheme; db -> get_db)
+    - So we don't need to manually pass a token or db session in every route as they are injected based on 
+      the request context

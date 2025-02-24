@@ -64,3 +64,23 @@ def get_tasks(db: Session, current_user):
 def get_task(db: Session, taskid: int, current_user):
   # Get one particular task by the current user
   return db.query(models.Task).filter_by(userid=current_user.id, id=taskid).first()
+
+
+# AUTHENTICATE USERS
+
+def authenticate_user(db: Session, username: str, password: str):
+  # Get the first user with that username (bound to be unique)
+  user = db.query(models.User).filter_by(username=username).first()
+  if not user:
+    return None
+  
+  # Verify the hashed password of the user
+  if not pwd_context.verify(password, user.hashed_password):
+    return None
+  
+  return user
+
+# CREATE ACCESS TOKENS
+
+def create_acess_token():
+  pass
