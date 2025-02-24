@@ -4,3 +4,4 @@ pydantic
 motor
 pydantic-settings
 passlib
+jose

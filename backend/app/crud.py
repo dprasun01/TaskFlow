@@ -53,7 +53,7 @@ def create_task(db: Session, task: schemas.TaskCreate, current_user):
 
   db.add(db_task)
   db.commit()
-  db.refresh()
+  db.refresh(db_task)
   return db_task
 
 def get_tasks(db: Session, current_user):

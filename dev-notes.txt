@@ -319,9 +319,71 @@ ________________________________________________________________________________
   - When we make our FastAPI routes, we use our get_db function from database.py as a dependency (via 
     FastAPI’s Depends mechanism) which gets a fresh session for the duration of the request, for every request and closes it once transaction is done
   - Every CRUD operation (like create_user in this case) gets its own session,
-    if we look at def create_user(db: Session, user: schemas.UserCreate):
+    FOR EXAMPLE: if we look at def create_user(db: Session, user: schemas.UserCreate):
     - db is the session, db: Session means that db is supposed to be a Session class's instance, created by 
       the sessionmaker
     - user: userCreate is the Pydantic model that is passed based on the user's frontend-sent request body
     - So, the syntax db: Session is a type annotation that tells us that the parameter db should be an instance 
       of the Session type
+  - Make sure to study all the crud methods for users and for tasks in crud.py
+
+10. NOTES ON routes/user.py and routes/task.py
+  Read through all the methods in both the files.
+  - See how the router is set up for users and tasks with different API endpoints
+  - Observe how the dependency injections have been created
+
+11. [IMPORTANT] NOTES ON dependencies.py:
+
+  PRIMER REGARDING AUTHENTICATION
+  Let's see how a user is able to log in to a website OR how a website is able to validate the user and how during their session, a user is able to make any sortof changes in their profile or view any information on the website (USAGE OF TOKENS)
+  
+  I. Login and Token Issuance:
+    General: 
+      - Whenever a user logs in to a website, the server validates their login credentials and issues 
+        a unique token (usually a JWT)
+      - This token is signed with a secret key, and sometimes includes an expiration time, to ensure 
+        its authenticity
+    TaskFlow: 
+        - The user logs in through an authentication endpoint (typically at '/token')
+        - If the login credentials are valid, FastAPI issues a JWT token. This JWT token is signed by the 
+          secret key inside .env file, [or the (same) one set up in config.py] SECRET_KEY.
+    
+    The client stores this token (in local storage or cookies) for subsequent requests.
+    On subsequent requests (GET, POST, etc.), the user's browser automatically sends this token in the "Authorization" header (or it's added by our client-side code).
+  
+  II. Authentication & Validation on Each Request:
+    General:
+      - The client sends a general GET request to view a resource (say)
+      - The server receives the request, extracts the token from the request header, and validates it
+      - If the token is valid (and not yet expired), the request proceeds; otherwise their access is denied
+    
+    TaskFlow:
+      - The client sends a GET request to "/tasks" (say) to fetch the list of their tasks
+      - This request includes an "Authorization" header with the token in the form:
+        Authorization: Bearer <JWT token>
+
+      - FastAPI Receives the request as it hits the "/tasks" endpoint defined in our routes/task.py
+      - It sees that the endpoint requires:
+        i.  A Database Session => Depends on database.get_db
+        ii. The current user (current_user: models.User) => Depends on dependencies.get_current_user
+      
+      - The get_current_user dependency uses FastAPI's OAuth2PasswordBearer to extract the token from 
+        the request's header
+      - A JWT library like python-jose is used to decode the token using the SECRET_KEY, which verifies 
+        the validity of the token
+      - From the decoded payload, the dependency retrieves the "sub" claim, which should contain the username
+      - It then calls the get_user_by_username function to query the database via SQLAlchemy and retrieve the 
+        user object itself, which matches the username
+      - An invalid or unfound token raises HTTP 401 Unauthorized error, while a successful get_current_user 
+        run returns the user object.
+
+      - Now, the user object is available in the API as current_user, after which the get_tasks CRUD function 
+        is called, and a SQLALCHEMY ORM object is returned, validated and decoupled by Pydantic, exposed over the API, and returned to the frontend
+
+  Some Additional Points:
+    Staying Logged In
+      - The browser remembers/stores the token, which allows us to stay logged in since every request 
+        is authenticated using the token
+      - If and when a token expires, the server rejects it and logs the user out
+      - This expiration mechanism is one reason why some sites log users out after inactivity; it minimizes 
+        the risk if someone gains access to an unused token.
