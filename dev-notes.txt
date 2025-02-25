@@ -414,3 +414,15 @@ ________________________________________________________________________________
       get_current_user and resolves its own dependencies (token -> oauth2_scheme; db -> get_db)
     - So we don't need to manually pass a token or db session in every route as they are injected based on 
       the request context
+  
+  - [IMPORTANT] Notice the parameters of the function login_for_access_token-
+    login_for_access_token(formdata: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)) -> models.User:
+
+    Here, OAuth2PasswordRequestForm is a fastapi.security helper class that is designed to automatically extract and validate data form data for OAuth2's "password" grant flow.
+      - It expects form data (sent with 'application/x-www-form-urlencoded') containing fields like username 
+        and password.
+      - When a client submits a login request, they send the username and password as form 
+        data. OAuth2PasswordRequestForm automatically parses these fields making formdata.username and 
+        formdata.password available from the incoming request
+      - form_data: OAuth2PasswordRequestForm = Depends() 
+        tells FastAPI to use dependency injection to first create an instance of OAuth2PasswordRequestForm populated with the data from the request, thus giving us access to formdata.username and formdata.password
