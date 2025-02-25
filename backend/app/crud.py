@@ -1,6 +1,9 @@
 from sqlalchemy.orm import Session
 from app import models, schemas
 from passlib.context import CryptContext
+from datetime import datetime, timedelta
+from jose import jwt
+from app.config import settings
 
 # Initializing the password hashing context using CryptContext
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -82,5 +85,19 @@ def authenticate_user(db: Session, username: str, password: str):
 
 # CREATE ACCESS TOKENS
 
-def create_acess_token():
-  pass
+def create_acess_token(data: dict, expires_delta: timedelta = None):
+
+  '''Note: this data consists of username and expiration time'''
+  
+  to_encode = data.copy()
+  if expires_delta:
+    expire = datetime.now(datetime.timezone.utc) + expires_delta
+  else:
+    expire = datetime.now(datetime.timezone.utc) + timedelta(minutes=15)
+  
+  # Include the expiration time into the data
+  to_encode.update({'exp' : expire})
+
+  # Encode the token using the SECRET KEY and the HS256 algorithm
+  encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=["HS256"])
+  return encoded_jwt
